@@ -24,21 +24,23 @@ end
 function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})
     if length(numbers) == 1
         if target == numbers[1]
-            return numbers
+            return :($target)
         end
     end
     return nothing
 end
 
-function tell_them(solution::Union{Array, Void})
+function tell_them(solution::Union{Expr, Void})
     if solution == nothing
         print("This one is impossible. Sorry!\n")
     end
 
-    print("You could have said:\n")
+    #= print("You could have said:\n")
     if length(solution) == 1 && solution[1] isa UInt8
         print("You've already got a $(solution[1]), no hard work!\n")
     end
+    =#
 
+    print("Uhh something with $(solution) I guess.")
 end
 
