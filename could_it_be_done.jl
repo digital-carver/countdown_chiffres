@@ -13,7 +13,6 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
     away = 0
     while (solution == nothing) && (-10 <= away <= 10)
         away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
-        print(away)
         nearby_target = UInt16(target + away)
         solution = find_arithmetic_expr(nearby_target, numbers)
     end
@@ -33,11 +32,13 @@ end
 function tell_them(solution::Union{Expr, Void})
     if solution == nothing
         print("This one is impossible. Sorry!\n")
+        return
     end
 
     #= print("You could have said:\n")
     if length(solution) == 1 && solution[1] isa UInt8
         print("You've already got a $(solution[1]), no hard work!\n")
+        return
     end
     =#
 
