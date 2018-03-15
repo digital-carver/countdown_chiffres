@@ -22,34 +22,47 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
     tell_them(solution)
 end
 
-"""
+#=
 find_arithmetic_expr(target, numbers) -> Expr
 
 Given a target number and an array of initial numbers to work with, figures out
 an arithmetic expression that uses the initial numbers to create the final number.
 
-The initial numbers are UInt16 here though the original numbers in the game 
-are UInt8, because the intermediate targets are also calculated using this
-function (recursively), and those can be above 255. 
+Note: 
+Number of potential expressions given n numbers and 4 binary operations 
+(excluding when target is one of the numbers) 
+ = nC2 * 4 + nC3 * 4 * 4 + ... + nCn * (4)^(n-1)
+ = sum( nCk * (4)^(k-1) ) for k = 2 to n
+ = sum_(k=2)^n 4^(k - 1) binomial(n, k) = 1/4 (-4 n + 5^n - 1) #Wolfram Alpha
+which for n = 6 comes to just 3900. So, even just brute forcing through 
+evaluating 3900 expressions would be doable. 
 
-
-"""
-function find_arithmetic_expr(target::UInt16, numbers::Array{UInt16, 1})
+=#
+function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})::Union{Expr,Void}
     if target in numbers
-        return :($target)
+        #return it raised to power one so it remains Expr and doesn't autoreduce to Int
+        return :($target ^ 1) 
     end
 
     solution = nothing
+
+    #= Try to simplify the target by looking for factors among the numbers =#
+    array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
     for idx in eachindex(numbers)
         n = numbers[idx]
         print("n is $(n) and target is $(target)\n")
         if target % n == 0 
-            ununsed_nums = numbers[[1:(idx-1); (idx+1):length(numbers)]]
-            partial_soln = find_arithmetic_expr(div(target, n), ununsed_nums)
+            unused_nums = array_rem_idx(numbers, idx)
+            partial_soln = find_arithmetic_expr(div(target, n), unused_nums)
             if partial_soln != nothing
                 solution = :($n * $partial_soln)
+                break
             end
         end
+    end
+
+    for idx in eachindex(numbers)
+        subset = [numbers[idx]]
     end
 
     return solution
