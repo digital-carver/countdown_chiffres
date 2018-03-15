@@ -1,7 +1,7 @@
 
 # (Written for Julia 0.6.0)
 
-function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
+function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
     # "An electronic computer called CECIL selects a target number from 101 to 999 inclusive at random."
     # (http://www.ukgameshows.com/ukgs/Countdown)
     if !(101 <= target <= 999)
@@ -20,6 +20,8 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
     end
 
     tell_them(solution)
+
+    return (solution != nothing)
 end
 
 #=
@@ -68,11 +70,9 @@ function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})::Union{E
     return solution
 end
 
-function tell_them(solution::Union{Expr, Void})
-    if solution == nothing
-        print("This one is impossible. Sorry!\n")
-        return
-    end
+tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
+
+function tell_them(solution::Expr)::Void
 
     #= print("You could have said:\n")
     if length(solution) == 1 && solution[1] isa UInt8
@@ -81,6 +81,6 @@ function tell_them(solution::Union{Expr, Void})
     end
     =#
 
-    print("Uhh something with $(solution) I guess.")
+    print("Uhh something like $(solution) I guess.")
 end
 
