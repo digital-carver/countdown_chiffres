@@ -10,8 +10,10 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
 
     solution = find_arithmetic_expr(target, numbers)
 
+    # if target is not doable, try to get the closest valid number that is doable
     away = 0
     while (solution == nothing) && (-10 <= away <= 10)
+        # TODO additional msg in output to indicate target was not achievable, etc.
         away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
         nearby_target = UInt16(target + away)
         solution = find_arithmetic_expr(nearby_target, numbers)
@@ -20,7 +22,19 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
     tell_them(solution)
 end
 
-function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})
+"""
+find_arithmetic_expr(target, numbers) -> Expr
+
+Given a target number and an array of initial numbers to work with, figures out
+an arithmetic expression that uses the initial numbers to create the final number.
+
+The initial numbers are UInt16 here though the original numbers in the game 
+are UInt8, because the intermediate targets are also calculated using this
+function (recursively), and those can be above 255. 
+
+
+"""
+function find_arithmetic_expr(target::UInt16, numbers::Array{UInt16, 1})
     if target in numbers
         return :($target)
     end
@@ -30,10 +44,10 @@ function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})
         n = numbers[idx]
         print("n is $(n) and target is $(target)\n")
         if target % n == 0 
-            otherelems=numbers[[1:(idx-1); (idx+1):length(numbers)]]
-            part_soln = find_arithmetic_expr(div(target, n), otherelems)
-            if part_soln != nothing
-                return :($n * $part_soln)
+            ununsed_nums = numbers[[1:(idx-1); (idx+1):length(numbers)]]
+            partial_soln = find_arithmetic_expr(div(target, n), ununsed_nums)
+            if partial_soln != nothing
+                solution = :($n * $partial_soln)
             end
         end
     end
