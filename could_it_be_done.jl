@@ -21,10 +21,8 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})
 end
 
 function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})
-    if length(numbers) == 1
-        if target == numbers[1]
-            return :($target)
-        end
+    if target in numbers
+        return :($target)
     end
 
     solution = nothing
