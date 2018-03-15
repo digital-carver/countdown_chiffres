@@ -26,7 +26,21 @@ function find_arithmetic_expr(target::UInt16, numbers::Array{UInt8, 1})
             return :($target)
         end
     end
-    return nothing
+
+    solution = nothing
+    for idx in eachindex(numbers)
+        n = numbers[idx]
+        print("n is $(n) and target is $(target)\n")
+        if target % n == 0 
+            otherelems=numbers[[1:(idx-1); (idx+1):length(numbers)]]
+            part_soln = find_arithmetic_expr(div(target, n), otherelems)
+            if part_soln != nothing
+                return :($n * $part_soln)
+            end
+        end
+    end
+
+    return solution
 end
 
 function tell_them(solution::Union{Expr, Void})
