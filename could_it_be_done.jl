@@ -19,7 +19,7 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
         solution = find_arithmetic_expr(nearby_target, numbers)
     end
 
-    tell_them(solution)
+    tell_them(solution, target, away)
 
     return (solution != nothing)
 end
@@ -180,15 +180,19 @@ end
 
 tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
 
-function tell_them(solution::Expr)::Void
+function tell_them(solution::Expr, target::UInt16, away)::Void
 
     #= print("You could have said:\n")
-    if length(solution) == 1 && solution[1] isa UInt8
+    if length(solution) == 1 && solution[1] isa Unsigned
         print("You've already got a $(solution[1]), no hard work!\n")
         return
     end
     =#
 
-    print("Uhh something like $(solution) I guess.")
+    print("*** Something like $(solution) will give you $(eval(solution)). ***\n")
+    if (away != 0) 
+        away = abs(away)
+        print("$away away from $target.\n")
+    end
 end
 
