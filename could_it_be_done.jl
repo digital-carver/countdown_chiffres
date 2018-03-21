@@ -44,6 +44,12 @@ which for n = 6 comes to just 3900. So, even just brute forcing through
 evaluating 3900 expressions would be doable. 
 
 =#
+#=
+macro verify_solution(soln, tgt)
+    print("Sol ", soln, "\n")
+    @assert (eval(soln) == tgt) "Attempted solution $(soln) doesn't evaluate to $(tgt)"
+end
+=#
 function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Expr,Void}
     print("Trying for target $(target) using $(numbers)...\n") #DBG
     if target in numbers
@@ -53,15 +59,9 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
 
     solution = nothing
 
-    #= macro return_solution()
-        quote
-            @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
-            return solution
-        end
-    end =#
     array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
 
-    #= Try to simplify the target by looking for factors among the numbers =#
+    # Try to simplify the target by looking for factors among the numbers
     for idx in eachindex(numbers)
         n = numbers[idx]
         if target % n == 0 
@@ -73,6 +73,9 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
             partial_soln = find_arithmetic_expr(div(target, n), unused_nums)
             if partial_soln != nothing
                 solution = :($n * $partial_soln)
+
+                #@verify_solution solution target
+                print("Sol $solution\n")
                 @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                 return solution
             end
@@ -95,8 +98,9 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
                     pair_result = UInt(pair_result)
                     if pair_result == target
                         solution = pair_expr
-                    print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+
+                        print("Sol $solution\n")
+                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                         return solution
                     end
                 end
@@ -109,34 +113,38 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
                 if (pair_result < target) 
                     diff = (target - pair_result) 
                     # partial solution should be added to result to get target
-                partial_soln = find_arithmetic_expr(diff, unused_nums)
-                if partial_soln != nothing
-                    solution = :($pair_expr + $partial_soln)
-                    print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
-                    return solution
-                end
+                    partial_soln = find_arithmetic_expr(diff, unused_nums)
+                    if partial_soln != nothing
+                        solution = :($pair_expr + $partial_soln)
+
+                        print("Sol $solution\n")
+                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        return solution
+                    end
                 else
                     diff = (pair_result - target)
                     # partial solution should be subtracted from result to get target
-                partial_soln = find_arithmetic_expr(diff, unused_nums)
-                if partial_soln != nothing
-                    solution = :($pair_expr - $partial_soln)
-                    print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
-                    return solution
-                end
+                    partial_soln = find_arithmetic_expr(diff, unused_nums)
+                    if partial_soln != nothing
+                        solution = :($pair_expr - $partial_soln)
+
+                        print("Sol $solution\n")
+                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        return solution
+                    end
                 end
 
                 quot = -1
                 if pair_result < target && target % pair_result == 0
+                    print(target, pair_result)
                     quot = UInt16(target/pair_result)
                     # partial solution and pair result should be multiplied to get target
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr * $partial_soln)
-                    print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+
+                        print("Sol $solution\n")
+                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                         return solution
                     end
                 elseif pair_result > target && pair_result % target == 0
@@ -145,23 +153,25 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr / $partial_soln)
-                    print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+
+                        print("Sol $solution\n")
+                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                         return solution
                     end
                 end
 
                 #= say target = 41, numbers = [1, 3, 9, 5]
-                    1 + 3 = 4 (this will be the pair_result),
-                    41 + 4 = 45 (sum_value),
-                    then 45 can be found as product as 9 and 5 in recursion. =#
+                1 + 3 = 4 (this will be the pair_result),
+                41 + 4 = 45 (sum_value),
+                then 45 can be found as product as 9 and 5 in recursion. =#
                 sum_value = target + pair_result
                 partial_soln = find_arithmetic_expr(sum_value, unused_nums)
                 if partial_soln != nothing
                     # solution should then be stored as (9 * 5) - (1 + 3)
                     solution = :($partial_soln - $pair_expr)
+
                     print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                    @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                     return solution
                 end
 
@@ -180,7 +190,7 @@ end
 
 tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
 
-function tell_them(solution::Expr, target::UInt16, away)::Void
+function tell_them(solution::Expr, target::UInt16, away)
 
     #= print("You could have said:\n")
     if length(solution) == 1 && solution[1] isa Unsigned
