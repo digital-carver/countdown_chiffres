@@ -42,6 +42,13 @@ function validate_input(target, numbers)
     end
 end
 
+array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
+
+function verify_solution(s, t) 
+    #print("Sol ", s, "\n") #DBG
+    @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t)"
+end
+
 #=
 find_arithmetic_expr(target, numbers) -> Expr
 
@@ -74,13 +81,22 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
 
     solution = nothing
 
-    array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
-    function verify_solution(s, t) 
-        #print("Sol ", s, "\n") #DBG
-        @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t)"
-    end
-
     # Try to simplify the target by looking for factors among the numbers
+    solution = look_for_factors(target, numbers)
+    (solution != nothing) && return solution
+
+    opers = [:*, :+]
+    solution = try_pairwise_arith(target, numbers, opers)
+    (solution != nothing) && return solution
+
+    opers = [:-, :/]
+    solution = try_pairwise_arith(target, numbers, opers)
+    (solution != nothing) && return solution
+
+    return solution
+end
+
+function look_for_factors(target, numbers)
     for idx in eachindex(numbers)
         n = numbers[idx]
         if target % n == 0 
@@ -97,13 +113,15 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
             end
         end
     end
+end
 
+function try_pairwise_arith(target, numbers, opers)
     for idx in eachindex(numbers)
         n = UInt(numbers[idx])
         for idx2 in (idx+1):length(numbers)
             m = UInt(numbers[idx2])
             unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
-            for oper in [:+, :-, :*, :/]
+            for oper in opers
                 if n < m && oper in [:-, :/]
                     pair_expr = Expr(:call, oper, m, n)
                 else
@@ -125,7 +143,6 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                         continue
                     end
                 end
-
 
                 if (pair_result < target) 
                     diff = (target - pair_result) 
@@ -185,10 +202,9 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
 
             end
         end
-        solution = nothing
     end
 
-    return solution
+    return nothing
 end
 
 tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
