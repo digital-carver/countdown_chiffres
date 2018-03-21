@@ -68,12 +68,15 @@ macro verify_solution(soln, tgt)
     @assert (eval(soln) == tgt) "Attempted solution $(soln) doesn't evaluate to $(tgt)"
 end
 =#
-function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Expr,Void}
-    print("Trying for target $(target) using $(numbers)...\n") #DBG
+function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Array{T2})::Union{Expr, Void}
     if target in numbers
         #return it raised to power one so it remains Expr and doesn't autoreduce to Int
         return :($target ^ 1) 
+    elseif length(numbers) == 1
+        return nothing
     end
+
+    print("Trying for target $(target) using $(numbers)...\n") #DBG
 
     solution = nothing
 
@@ -104,13 +107,18 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
         n = UInt(numbers[idx])
         for idx2 in (idx+1):length(numbers)
             m = UInt(numbers[idx2])
+            unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
             for oper in [:+, :-, :*, :/]
-                pair_expr = Expr(:call, oper, n, m)
+                if n < m && oper in [:-, :/]
+                    pair_expr = Expr(:call, oper, m, n)
+                else
+                    pair_expr = Expr(:call, oper, n, m)
+                end
                 pair_result = eval(pair_expr)
 
                 # only positive integers may be obtained as a result at any stage of the calculation.
                 # (Countdown (game show), Wikipedia, in turn from 'Countdown: Spreading the Word' (2001) p. 24.)
-                if pair_result < 0 || round(pair_result) != pair_result
+                if pair_result <= 0 || round(pair_result) != pair_result
                     continue
                 else
                     pair_result = UInt(pair_result)
@@ -120,13 +128,11 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
                         print("Sol $solution\n")
                         @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
                         return solution
+                    elseif length(unused_nums) == 0
+                        continue
                     end
                 end
 
-                unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
-                if length(unused_nums) == 0
-                    continue
-                end
 
                 if (pair_result < target) 
                     diff = (target - pair_result) 
@@ -154,7 +160,6 @@ function find_arithmetic_expr{T<:Unsigned}(target::T, numbers::Array)::Union{Exp
 
                 quot = -1
                 if pair_result < target && target % pair_result == 0
-                    print(target, pair_result)
                     quot = UInt16(target/pair_result)
                     # partial solution and pair result should be multiplied to get target
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
