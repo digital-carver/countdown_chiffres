@@ -62,12 +62,6 @@ which for n = 6 comes to just 3900. So, even just brute forcing through
 evaluating 3900 expressions would be doable. 
 
 =#
-#=
-macro verify_solution(soln, tgt)
-    print("Sol ", soln, "\n")
-    @assert (eval(soln) == tgt) "Attempted solution $(soln) doesn't evaluate to $(tgt)"
-end
-=#
 function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Array{T2})::Union{Expr, Void}
     if target in numbers
         #return it raised to power one so it remains Expr and doesn't autoreduce to Int
@@ -76,11 +70,15 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
         return nothing
     end
 
-    print("Trying for target $(target) using $(numbers)...\n") #DBG
+    #print("Trying for target $(target) using $(numbers)...") #DBG
 
     solution = nothing
 
     array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
+    function verify_solution(s, t) 
+        #print("Sol ", s, "\n") #DBG
+        @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t)"
+    end
 
     # Try to simplify the target by looking for factors among the numbers
     for idx in eachindex(numbers)
@@ -94,10 +92,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
             partial_soln = find_arithmetic_expr(div(target, n), unused_nums)
             if partial_soln != nothing
                 solution = :($n * $partial_soln)
-
-                #@verify_solution solution target
-                print("Sol $solution\n")
-                @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                verify_solution(solution, target)
                 return solution
             end
         end
@@ -124,9 +119,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                     pair_result = UInt(pair_result)
                     if pair_result == target
                         solution = pair_expr
-
-                        print("Sol $solution\n")
-                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        verify_solution(solution, target)
                         return solution
                     elseif length(unused_nums) == 0
                         continue
@@ -140,9 +133,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                     partial_soln = find_arithmetic_expr(diff, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr + $partial_soln)
-
-                        print("Sol $solution\n")
-                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        verify_solution(solution, target)
                         return solution
                     end
                 else
@@ -151,9 +142,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                     partial_soln = find_arithmetic_expr(diff, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr - $partial_soln)
-
-                        print("Sol $solution\n")
-                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        verify_solution(solution, target)
                         return solution
                     end
                 end
@@ -165,9 +154,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr * $partial_soln)
-
-                        print("Sol $solution\n")
-                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        verify_solution(solution, target)
                         return solution
                     end
                 elseif pair_result > target && pair_result % target == 0
@@ -176,9 +163,7 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
                         solution = :($pair_expr / $partial_soln)
-
-                        print("Sol $solution\n")
-                        @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                        verify_solution(solution, target)
                         return solution
                     end
                 end
@@ -192,17 +177,12 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
                 if partial_soln != nothing
                     # solution should then be stored as (9 * 5) - (1 + 3)
                     solution = :($partial_soln - $pair_expr)
-
-                    print("Sol $solution\n")
-                    @assert (eval(solution) == target) "Attempted solution $(solution) doesn't evaluate to $(target)"
+                    verify_solution(solution, target)
                     return solution
                 end
 
                 # TODO target * pair_result should be found, then solution would be (partial_soln/pair_expr)
 
-                #= TODO if oper in [:-, :/]
-                    pair_result = eval(Expr(:call, oper, m, n))
-                end =#
             end
         end
         solution = nothing
@@ -213,7 +193,7 @@ end
 
 tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
 
-function tell_them(solution::Expr, target::UInt16, away)
+function tell_them(solution::Expr, target, away)
 
     #= print("You could have said:\n")
     if length(solution) == 1 && solution[1] isa Unsigned
@@ -222,7 +202,13 @@ function tell_them(solution::Expr, target::UInt16, away)
     end
     =#
 
-    print("*** Something like $(solution) will give you $(eval(solution)). ***\n")
+    result = UInt16(eval(solution))
+    achieved_target = target + away
+    @assert (result == achieved_target) "Something went wrong: I thought I had $achieved_target, but I have $result instead."
+
+    # TODO replace this with full blown readable output
+    print("*** Something like $(solution) will give you $(result). ***\n")
+
     if (away != 0) 
         away = abs(away)
         print("$away away from $target.\n")
