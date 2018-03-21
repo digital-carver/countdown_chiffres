@@ -2,11 +2,7 @@
 # (Written for Julia 0.6.0)
 
 function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
-    # "An electronic computer called CECIL selects a target number from 101 to 999 inclusive at random."
-    # (http://www.ukgameshows.com/ukgs/Countdown)
-    if !(101 <= target <= 999)
-        error("Are you trying to have a go at me, mate? The target should be between 101 and 999, not $(target).")
-    end
+    validate_input(target, numbers)
 
     solution = find_arithmetic_expr(target, numbers)
 
@@ -22,6 +18,28 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
     tell_them(solution, target, away)
 
     return (solution != nothing)
+end
+
+function validate_input(target, numbers)
+    if length(numbers) != 6
+        error("We should have 6 initial numbers to work with, instead we have $(length(numbers)).")
+    end
+
+    # "An electronic computer called CECIL selects a target number from 101 to 999 inclusive at random."
+    # (http://www.ukgameshows.com/ukgs/Countdown)
+    if !(101 <= target <= 999)
+        error("Are you trying to have a go at me, mate? The target should be between 101 and 999, not $(target).")
+    end
+
+    is_valid_input_num(n) = ((1 <= n <= 10) || n in [25, 50, 75, 100])
+    if !all(is_valid_input_num, numbers)
+        error("Something's wrong here: you can have only numbers 1 to 10 or numbers 25, 50, 75 and 100 as initial numbers to work from.")
+    end
+
+    bigguns = filter(n -> n > 10, numbers)
+    if length(bigguns) > 4 || !allunique(bigguns)
+        error("You can have 4 bigguns at most, and they can't repeat (input had these: $bigguns)")
+    end
 end
 
 #=
