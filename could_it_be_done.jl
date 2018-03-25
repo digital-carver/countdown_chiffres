@@ -1,10 +1,10 @@
 
 # (Written for Julia 0.6.0)
 
-function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
+function could_it_be_done(target, numbers)::Bool
     validate_input(target, numbers)
 
-    solution = find_arithmetic_expr(target, numbers)
+    solution = find_arithmetic_expr(UInt16(target), Array{UInt8}(numbers))
 
     # if target is not doable, try to get the closest valid number that is doable
     away = 0
@@ -12,7 +12,7 @@ function could_it_be_done(target::UInt16, numbers::Array{UInt8, 1})::Bool
         # TODO additional msg in output to indicate target was not achievable, etc.
         away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
         nearby_target = UInt16(target + away)
-        solution = find_arithmetic_expr(nearby_target, numbers)
+        solution = find_arithmetic_expr(nearby_target, Array{UInt8}(numbers))
     end
 
     tell_them(solution, target, away)
@@ -186,7 +186,7 @@ function try_pairwise_arith(target, numbers, opers)
     return nothing
 end
 
-tell_them(solution::Void) = print("This one is impossible. Sorry!\n")
+tell_them(solution::Void, t, a) = print("This one is impossible. Sorry!\n")
 
 function tell_them(solution::Expr, target, away)
 
