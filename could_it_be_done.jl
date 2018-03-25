@@ -7,11 +7,12 @@ function could_it_be_done(target, numbers)::Bool
     solution = find_arithmetic_expr(UInt16(target), Array{UInt8}(numbers))
 
     # if target is not doable, try to get the closest valid number that is doable
+    print("Couldn't find $target from the given numbers. ")
     away = 0
     while (solution == nothing) && (-10 <= away <= 10)
-        # TODO additional msg in output to indicate target was not achievable, etc.
         away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
         nearby_target = UInt16(target + away)
+        print("Trying to get $nearby_target now... ")
         solution = find_arithmetic_expr(nearby_target, Array{UInt8}(numbers))
     end
 
@@ -202,7 +203,7 @@ function tell_them(solution::Expr, target, away)
     @assert (result == achieved_target) "Something went wrong: I thought I had $achieved_target, but I have $result instead."
 
     # TODO replace this with full blown readable output
-    print("*** Something like $(solution) will give you $(result). ***\n")
+    print("*** Make sense of $(solution) and it will give you $(result). ***\n")
 
     if (away != 0) 
         away = abs(away)
