@@ -3,6 +3,7 @@
 
 NUMBERS_COUNT = 6
 MAX_BIGGUNS   = 4
+
 function could_it_be_done(target, numbers)::Bool
     validate_input(target, numbers)
 
@@ -61,7 +62,6 @@ function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
         return nothing
     end
 
-    solution = nothing
     leftpad = " " ^ (NUMBERS_COUNT - length(numbers))
     print("\n$(leftpad)Trying for target $(target) using $(numbers)...") #DBG
 
@@ -77,15 +77,15 @@ function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
     solution = try_pairwise_arith(target, numbers, opers)
     (solution != nothing) && return solution
 
-    return solution
+    return nothing
 end
 
 function look_for_factors(target, numbers)
-    for idx in eachindex(numbers)
-        n = numbers[idx]
-        if target % n == 0 
+    for (idx, n) in enumerate(numbers)
+        if target % n == 0 && n != 1
             unused_nums = array_rem_idx(numbers, idx)
             if length(unused_nums) == 0
+                # if there are no other numbers left to form a multiplicand with
                 continue
             end
 
@@ -100,16 +100,16 @@ function look_for_factors(target, numbers)
 end
 
 function try_pairwise_arith(target, numbers, opers)
-    for idx in eachindex(numbers)
-        n = UInt(numbers[idx])
+    for (idx, n) in enumerate(numbers)
+        n = Unsigned(n) #assertion that the value is non-negative
         for idx2 in (idx+1):length(numbers)
             m = Unsigned(numbers[idx2])
             unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
             for oper in opers
                 if n < m && oper in [:-, :/]
-                    pair_expr = Expr(:call, oper, m, n)
+                    pair_expr = :($oper($m, $n))
                 else
-                    pair_expr = Expr(:call, oper, n, m)
+                    pair_expr = :($oper($n, $m))
                 end
                 pair_result = eval(pair_expr)
 
