@@ -6,16 +6,16 @@ MAX_BIGGUNS   = 4
 function could_it_be_done(target, numbers)::Bool
     validate_input(target, numbers)
 
-    solution = find_arithmetic_expr(UInt16(target), Array{UInt8}(numbers))
+    solution = find_arithmetic_expr(target, numbers)
 
     # if target is not doable, try to get the closest valid number that is doable
     print("Couldn't find $target from the given numbers. ")
     away = 0
     while (solution == nothing) && (-10 <= away <= 10)
         away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
-        nearby_target = UInt16(target + away)
         print("Trying to get $nearby_target now... ")
-        solution = find_arithmetic_expr(nearby_target, Array{UInt8}(numbers))
+        nearby_target = target + away
+        solution = find_arithmetic_expr(nearby_target, numbers)
     end
 
     tell_them(solution, target, away)
@@ -51,7 +51,7 @@ which for n = 6 comes to just 3900. So, even just brute forcing through
 evaluating 3900 expressions would be doable. 
 
 =#
-function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Array{T2})::Union{Expr, Void}
+function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
     if target in numbers
         #return it raised to power one so it remains Expr and doesn't autoreduce to Int
         return :($target ^ 1) 
@@ -101,7 +101,7 @@ function try_pairwise_arith(target, numbers, opers)
     for idx in eachindex(numbers)
         n = UInt(numbers[idx])
         for idx2 in (idx+1):length(numbers)
-            m = UInt(numbers[idx2])
+            m = Unsigned(numbers[idx2])
             unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
             for oper in opers
                 if n < m && oper in [:-, :/]
@@ -116,7 +116,7 @@ function try_pairwise_arith(target, numbers, opers)
                 if pair_result <= 0 || round(pair_result) != pair_result
                     continue
                 else
-                    pair_result = UInt(pair_result)
+                    pair_result = Unsigned(pair_result) #division gives Float, turn back to int
                     if pair_result == target
                         solution = pair_expr
                         verify_solution(solution, target)
@@ -148,7 +148,7 @@ function try_pairwise_arith(target, numbers, opers)
 
                 quot = -1
                 if pair_result < target && target % pair_result == 0
-                    quot = UInt16(target/pair_result)
+                    quot = Unsigned(target/pair_result)
                     # partial solution and pair result should be multiplied to get target
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
@@ -157,7 +157,7 @@ function try_pairwise_arith(target, numbers, opers)
                         return solution
                     end
                 elseif pair_result > target && pair_result % target == 0
-                    quot = UInt16(pair_result/target)
+                    quot = Unsigned(pair_result/target)
                     # pair result should be divided by partial solution to get target
                     partial_soln = find_arithmetic_expr(quot, unused_nums)
                     if partial_soln != nothing
