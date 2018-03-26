@@ -9,13 +9,15 @@ function could_it_be_done(target, numbers)::Bool
     solution = find_arithmetic_expr(target, numbers)
 
     # if target is not doable, try to get the closest valid number that is doable
-    print("Couldn't find $target from the given numbers. ")
     away = 0
-    while (solution == nothing) && (-10 <= away <= 10)
-        away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
-        print("Trying to get $nearby_target now... ")
-        nearby_target = target + away
-        solution = find_arithmetic_expr(nearby_target, numbers)
+    if (solution == nothing)
+        print("Couldn't find $target from the given numbers. ")
+        while (solution == nothing) && (-10 <= away <= 10)
+            away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
+            nearby_target = target + away
+            print("Trying to get $nearby_target now... ")
+            solution = find_arithmetic_expr(nearby_target, numbers)
+        end
     end
 
     tell_them(solution, target, away)
