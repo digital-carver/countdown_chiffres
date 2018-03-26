@@ -4,6 +4,24 @@
 NUMBERS_COUNT = 6
 MAX_BIGGUNS   = 4
 
+"""
+could_it_be_done(target, numbers) -> Bool
+
+Solves the Numbers game from the TV show Countdown. Prints the steps of the solution
+(if solvable), and at the end returns whether the target (or a nearby number) was achievable. 
+
+# Arguments 
+- `target`: should be a number between 101 and 999.
+- `numbers`: should be one of: `[1:10 25 50 75 100]`
+
+# Examples
+
+```jldoctext
+julia> 
+
+```
+
+"""
 function could_it_be_done(target, numbers)::Bool
     validate_input(target, numbers)
 
@@ -34,8 +52,7 @@ function verify_solution(s, t)
     @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t), instead to $(eval(s))"
 end
 
-#=
-find_arithmetic_expr(target, numbers) -> Expr
+#= find_arithmetic_expr
 
 Given a target number and an array of initial numbers to work with, figures out
 an arithmetic expression involving those initial numbers and the four basic 
@@ -44,15 +61,14 @@ arithmetic operators (+, -, *, /), that equals the final number.
 Does that by working backward from the target number, trying to break it down into
 the given set of numbers in some way. 
 
-Note: 
+(Note: 
 Number of potential expressions given n numbers and 4 binary operations 
-(excluding when target is one of the numbers) 
- = nC2 * 4 + nC3 * 4 * 4 + ... + nCn * (4)^(n-1)
- = sum( nCk * (4)^(k-1) ) for k = 2 to n
- = sum_(k=2)^n 4^(k - 1) binomial(n, k) = 1/4 (-4 n + 5^n - 1) #Wolfram Alpha
-which for n = 6 comes to just 3900. So, even just brute forcing through 
-evaluating 3900 expressions would be doable. 
-
+= nC2 * 4 + nC3 * 4 * 4 + ... + nCn * (4)^(n-1)
+= sum( nCk * (4)^(k-1) ) given k = 2 to n
+= sum_(k=2)^n 4^(k - 1) binomial(n, k) = 1/4 (-4 n + 5^n - 1) #Wolfram Alpha
+which given n = 6 comes to 3900.  
+Therefore, a naive brute force version would create and evaluate 3900 expressions
+using the given numbers.)
 =#
 function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
     if target in numbers
