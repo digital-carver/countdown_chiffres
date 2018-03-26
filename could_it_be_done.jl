@@ -1,6 +1,8 @@
 
 # (Written for Julia 0.6.0)
 
+NUMBERS_COUNT = 6
+MAX_BIGGUNS   = 4
 function could_it_be_done(target, numbers)::Bool
     validate_input(target, numbers)
 
@@ -26,7 +28,7 @@ array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
 
 function verify_solution(s, t) 
     #print("Sol ", s, "\n") #DBG
-    @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t)"
+    @assert (eval(s) == t) "Attempted solution $(s) doesn't evaluate to $(t), instead to $(eval(s))"
 end
 
 #=
@@ -57,9 +59,9 @@ function find_arithmetic_expr{T1<:Unsigned,T2<:Unsigned}(target::T1, numbers::Ar
         return nothing
     end
 
-    #print("Trying for target $(target) using $(numbers)...") #DBG
-
     solution = nothing
+    leftpad = " " ^ (NUMBERS_COUNT - length(numbers))
+    print("\n$(leftpad)Trying for target $(target) using $(numbers)...") #DBG
 
     # Try to simplify the target by looking for factors among the numbers
     solution = look_for_factors(target, numbers)
@@ -187,7 +189,7 @@ function try_pairwise_arith(target, numbers, opers)
     return nothing
 end
 
-tell_them(solution::Void, t, a) = print("This one is impossible. Sorry!\n")
+tell_them(solution::Void, t, a) = print("This one's impossible. Sorry!\n")
 
 function tell_them(solution::Expr, target, away)
 
@@ -203,7 +205,7 @@ function tell_them(solution::Expr, target, away)
     @assert (result == achieved_target) "Something went wrong: I thought I had $achieved_target, but I have $result instead."
 
     # TODO replace this with full blown readable output
-    print("*** Make sense of $(solution) and it will give you $(result). ***\n")
+    print("\n*** Make sense of \n$(solution)\n and it will give you $(result). ***\n")
 
     if (away != 0) 
         away = abs(away)
@@ -212,8 +214,8 @@ function tell_them(solution::Expr, target, away)
 end
 
 function validate_input(target, numbers)
-    if length(numbers) != 6
-        error("We should have 6 initial numbers to work with, instead we have $(length(numbers)).")
+    if length(numbers) != NUMBERS_COUNT
+        error("We should have $(NUMBERS_COUNT) initial numbers to work with, instead we have $(length(numbers)).")
     end
 
     # "An electronic computer called CECIL selects a target number from 101 to 999 inclusive at random."
@@ -228,8 +230,8 @@ function validate_input(target, numbers)
     end
 
     bigguns = filter(n -> n > 10, numbers)
-    if length(bigguns) > 4 || !allunique(bigguns)
-        error("You can have 4 bigguns at most, and they can't repeat (input had these: $bigguns)")
+    if length(bigguns) > MAX_BIGGUNS || !allunique(bigguns)
+        error("You can have $(MAX_BIGGUNS) bigguns at most, and they can't repeat (input had these: $bigguns)")
     end
 end
 
