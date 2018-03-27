@@ -3,6 +3,7 @@
 
 NUMBERS_COUNT = 6
 MAX_BIGGUNS   = 4
+padding_spaces = [" " ^ (n-1) for n in 1:NUMBERS_COUNT]
 
 """
 could_it_be_done(target, numbers) -> Bool
@@ -78,8 +79,8 @@ function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
         return nothing
     end
 
-    leftpad = " " ^ (NUMBERS_COUNT - length(numbers))
-    print("\n$(leftpad)Trying for target $(target) using $(numbers)...") #DBG
+    leftpad = padding_spaces[NUMBERS_COUNT - length(numbers) + 1]
+    #print("\n$(leftpad)Trying for target $(target) using $(numbers)...") #DBG
 
     # Try to simplify the target by looking for factors among the numbers
     solution = look_for_factors(target, numbers)
@@ -207,11 +208,11 @@ function try_pairwise_arith(target, numbers, opers)
     return nothing
 end
 
-tell_them(solution::Void, t, a) = print("This one's impossible. Sorry!\n")
+tell_them(solution::Void, t, a) = println("This one's impossible. Sorry!")
 
 function tell_them(solution::Expr, target, away)
 
-    #= print("You could have said:\n")
+    #= 
     if length(solution) == 1 && solution[1] isa Unsigned
         print("You've already got a $(solution[1]), no hard work!\n")
         return
@@ -222,12 +223,66 @@ function tell_them(solution::Expr, target, away)
     achieved_target = target + away
     @assert (result == achieved_target) "Something went wrong: I thought I had $achieved_target, but I have $result instead."
 
-    # TODO replace this with full blown readable output
-    print("\n*** Make sense of \n$(solution)\n and it will give you $(result). ***\n")
+    println("\nRaw solution: \n$(solution)\n = $(result).") #DBG
+
+    println("You could have said:")
+    say_expr(solution, level=1)
 
     if (away != 0) 
         away = abs(away)
-        print("$away away from $target.\n")
+        println("$away away from $target.")
+    end
+end
+
+function say_expr(solution; level=1)
+    oper       = solution.args[1]
+    operands   = solution.args[2:end]
+    soln_value = eval(solution)
+    leftpad    = ""
+
+    #println("oper = $oper , operands = $operands , value = $soln_value") #DBG 
+
+    # Special case
+    if oper == :^
+        if length(operands) != 2 || operands[2] != 1
+            error("Something went wrong: attempted solution $solution uses exponentiation, illegal!")
+        end
+        operands = [operands[1]]
+    end
+
+    leftpad = padding_spaces[level]
+
+    operand_vals = []
+    for el in operands
+        if el isa Number
+            println(leftpad, "Take the $el")
+            operand_vals = push!(operand_vals, el)
+        elseif el isa Expr
+            if el.args[1] == :^
+                say_expr(el, level=level)
+            else
+                println(leftpad, "Get $(eval(el)) this way:")
+                say_expr(el, level=level+1)
+            end
+            operand_vals = push!(operand_vals, eval(el))
+        else
+            error("Encountered unexpected value $el of type $(typeof(el)) when trying to print solution $solution.")
+        end
+    end
+
+    if oper == :+
+        println(leftpad, "Add those together to get $soln_value")
+    elseif oper == :*
+        println(leftpad, "Multiply those together to get $soln_value")
+    elseif oper == :-
+        # - and / take only two operands
+        println(leftpad, "Subtract $(operand_vals[2]) from $(operand_vals[1]) to get $soln_value")
+    elseif oper == :/
+        println(leftpad, "Divide $(operand_vals[1]) by $(operand_vals[2]) to get $soln_value")
+    elseif oper == :^
+        ; #nothing to do, since it's always ^1
+    else
+        error("Encountered unexpected operator $oper when trying to print solution $solution.")
     end
 end
 
