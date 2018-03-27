@@ -6,24 +6,48 @@ MAX_BIGGUNS   = 4
 padding_spaces = ["-" ^ n for n in 1:NUMBERS_COUNT]
 
 """
-could_it_be_done(target, numbers) -> Bool
+could_it_be_done(target, numbers[, verbosity]) -> (is_achievable, achieved_target)
 
-Solves the Numbers game from the TV show Countdown. Prints the steps of the solution
-(if solvable), and at the end returns whether the target (or a nearby number) was achievable. 
+Solves the Numbers game from the TV show Countdown.
+
+Returns whether a point-gaining solution could be achieved, along with the actual
+achieved target (either the given target, or the closest achievable number
+not more than 10 away from original target).
+
+If the given numbers are solvable (and verbosity allows it), prints the steps of
+the solution in human-readable style.
 
 # Arguments 
 - `target`: should be a number between 101 and 999.
 - `numbers`: should be one of: `[1:10 25 50 75 100]`
+- `verbosity`: <=0 for no output, 1 for normal output, >=2 for debug output. Default: 1
 
 # Examples
 
-```jldoctext
-julia> 
+```jldoctest
+
+julia> could_it_be_done(375, [5, 3, 100, 25, 50, 75])
+
+You could have said:
+-Take the 5
+-Take the 75
+-Multiply those together to get 375
+(true, 375)
+
+julia> could_it_be_done(243, [5, 3, 100, 25, 50, 75], verbosity=0)
+(true, 243)
+
+julia> could_it_be_done(989, [5, 3, 100, 25, 50, 75], verbosity=0)
+(true, 990)
+
+# difficult but possible
+julia> could_it_be_done(952, [6, 3, 100, 25, 50, 75], verbosity=0)
+(true, 952)
 
 ```
 
 """
-function could_it_be_done(target, numbers)::Bool
+function could_it_be_done(target, numbers; verbosity=1)
     validate_input(target, numbers)
 
     solution = find_arithmetic_expr(target, numbers)
@@ -31,22 +55,22 @@ function could_it_be_done(target, numbers)::Bool
     # if target is not doable, try to get the closest valid number that is doable
     away = 0
     if (solution == nothing)
-        print("Couldn't find $target from the given numbers. ")
+        verbosity > 0 && print("Couldn't find $target from the given numbers. ")
         while (solution == nothing) && (-10 <= away <= 10)
             away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
             nearby_target = target + away
-            print("Trying to get $nearby_target now... ")
+            verbosity > 0 && print("Trying to get $nearby_target now... ")
             solution = find_arithmetic_expr(nearby_target, numbers)
         end
     end
 
-    tell_them(solution, target, away)
+    verbosity > 0 && tell_them(solution, target, away)
 
-    return (solution != nothing)
+    return (solution != nothing, target + away)
 end
 
 # FIXME there's gotta be a better way to do this
-array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):length(arr)]])
+array_rem_idx(arr, idx) = (arr[[1:(idx-1); (idx+1):end]])
 
 function verify_solution(s, t) 
     #print("Sol ", s, "\n") #DBG
