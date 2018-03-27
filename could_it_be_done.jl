@@ -3,7 +3,7 @@
 
 NUMBERS_COUNT = 6
 MAX_BIGGUNS   = 4
-padding_spaces = [" " ^ (n-1) for n in 1:NUMBERS_COUNT]
+padding_spaces = ["-" ^ n for n in 1:NUMBERS_COUNT]
 
 """
 could_it_be_done(target, numbers) -> Bool
@@ -223,21 +223,21 @@ function tell_them(solution::Expr, target, away)
     achieved_target = target + away
     @assert (result == achieved_target) "Something went wrong: I thought I had $achieved_target, but I have $result instead."
 
-    println("\nRaw solution: \n$(solution)\n = $(result).") #DBG
+    println("\n[Raw solution: \n$(solution)\n = $(result).]") #DBG
 
     println("You could have said:")
     say_expr(solution, level=1)
 
     if (away != 0) 
         away = abs(away)
-        println("$away away from $target.")
+        println("\n$away away from $target.")
     end
 end
 
 function say_expr(solution; level=1)
     oper       = solution.args[1]
     operands   = solution.args[2:end]
-    soln_value = eval(solution)
+    soln_value = Unsigned(eval(solution))
     leftpad    = ""
 
     #println("oper = $oper , operands = $operands , value = $soln_value") #DBG 
@@ -258,13 +258,14 @@ function say_expr(solution; level=1)
             println(leftpad, "Take the $el")
             operand_vals = push!(operand_vals, el)
         elseif el isa Expr
+            el_value = Unsigned(eval(el))
             if el.args[1] == :^
                 say_expr(el, level=level)
             else
-                println(leftpad, "Get $(eval(el)) this way:")
+                println(leftpad, "Get $(el_value) this way:")
                 say_expr(el, level=level+1)
             end
-            operand_vals = push!(operand_vals, eval(el))
+            operand_vals = push!(operand_vals, el_value)
         else
             error("Encountered unexpected value $el of type $(typeof(el)) when trying to print solution $solution.")
         end
