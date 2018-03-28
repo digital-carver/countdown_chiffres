@@ -44,6 +44,9 @@ julia> could_it_be_done(989, [5, 3, 100, 25, 50, 75], verbosity=0)
 julia> could_it_be_done(952, [6, 3, 100, 25, 50, 75], verbosity=0)
 (true, 952)
 
+julia> could_it_be_done(921, [5, 5, 1, 2, 3, 1], verbosity=0)
+(false, nothing)
+
 ```
 
 """
@@ -66,7 +69,9 @@ function could_it_be_done(target, numbers; verbosity=1)
 
     verbosity > 0 && tell_them(solution, target, away)
 
-    return (solution != nothing, target + away)
+    is_achievable = (solution != nothing)
+    achieved_target = is_achievable ? target + away : nothing
+    return (is_achievable, achieved_target)
 end
 
 # FIXME there's gotta be a better way to do this
