@@ -3,7 +3,7 @@
 
 NUMBERS_COUNT = 6
 MAX_BIGGUNS   = 4
-padding_spaces = ["-" ^ n for n in 1:NUMBERS_COUNT]
+padding_spaces = [("  " ^ (n-1)) * "* " for n in 1:NUMBERS_COUNT]
 
 """
 could_it_be_done(target, numbers[, verbosity]) -> (is_achievable, achieved_target)
@@ -127,13 +127,13 @@ function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
 end
 
 function look_for_factors(target, numbers)
+    if length(numbers) == 1
+        # if there are no other numbers left to form a multiplicand with
+        return nothing #assume equality to target has already been checked
+    end
     for (idx, n) in enumerate(numbers)
         if target % n == 0 && n != 1
             unused_nums = array_rem_idx(numbers, idx)
-            if length(unused_nums) == 0
-                # if there are no other numbers left to form a multiplicand with
-                continue
-            end
 
             partial_soln = find_arithmetic_expr(div(target, n), unused_nums)
             if partial_soln != nothing
@@ -261,13 +261,14 @@ function tell_them(solution::Expr, target, away)
         away = abs(away)
         println("\n$away away from $target.")
     end
+    println()
 end
 
 function say_expr(solution; level=1)
     oper       = solution.args[1]
     operands   = solution.args[2:end]
     soln_value = Unsigned(eval(solution))
-    leftpad    = ""
+    leftpad    = padding_spaces[level]
 
     #println("oper = $oper , operands = $operands , value = $soln_value") #DBG 
 
@@ -278,8 +279,6 @@ function say_expr(solution; level=1)
         end
         operands = [operands[1]]
     end
-
-    leftpad = padding_spaces[level]
 
     operand_vals = []
     for el in operands
