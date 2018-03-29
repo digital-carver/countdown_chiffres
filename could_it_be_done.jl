@@ -1,9 +1,19 @@
 
 # (Written for Julia 0.6.0)
 
-NUMBERS_COUNT = 6
-MAX_BIGGUNS   = 4
-padding_spaces = [("  " ^ (n-1)) * "* " for n in 1:NUMBERS_COUNT]
+
+NUMBERS_COUNT   = 6
+MAX_BIGGUNS     = 4
+padding_spaces  = [("  " ^ (n-1)) * "* " for n in 1:NUMBERS_COUNT]
+verbosity_level = 1
+
+macro if_verbose(code)
+    quote
+        if verbosity_level > 0 
+            $(esc(code))
+        end
+    end
+end
 
 """
 could_it_be_done(target, numbers[, verbosity]) -> (is_achievable, achieved_target)
@@ -53,21 +63,24 @@ julia> could_it_be_done(921, [5, 5, 1, 2, 3, 1], verbosity=0)
 function could_it_be_done(target, numbers; verbosity=1)
     validate_input(target, numbers)
 
+    global verbosity_level
+    verbosity_level = verbosity 
+
     solution = find_arithmetic_expr(target, numbers)
 
     # if target is not doable, try to get the closest valid number that is doable
     away = 0
     if (solution == nothing)
-        verbosity > 0 && print("Couldn't find $target from the given numbers. ")
+        @if_verbose print("Couldn't find $target from the given numbers. ")
         while (solution == nothing) && (-10 <= away <= 10)
             away = (away <= 0) ? (-away + 1) : (-away) # Go 1 to -1 to 2 to -2 to 3 to ...
             nearby_target = target + away
-            verbosity > 0 && print("Trying to get $nearby_target now... ")
+            @if_verbose print("Trying to get $nearby_target now... ")
             solution = find_arithmetic_expr(nearby_target, numbers)
         end
     end
 
-    verbosity > 0 && tell_them(solution, target, away)
+    @if_verbose tell_them(solution, target, away)
 
     is_achievable = (solution != nothing)
     achieved_target = is_achievable ? target + away : nothing
