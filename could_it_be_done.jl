@@ -1,9 +1,11 @@
 
 # (Written for Julia 0.6.0)
 
+using Combinatorics
 
 NUMBERS_COUNT   = 6
 MAX_BIGGUNS     = 4
+OPERS           = [:*, :+, :-, :/]
 padding_spaces  = [("  " ^ (n-1)) * "* " for n in 1:NUMBERS_COUNT]
 verbosity_level = 1
 
@@ -121,19 +123,11 @@ function find_arithmetic_expr(target, numbers)::Union{Expr, Void}
         return nothing
     end
 
-    leftpad = padding_spaces[NUMBERS_COUNT - length(numbers) + 1]
-    #print("\n$(leftpad)Trying for target $(target) using $(numbers)...") #DBG
-
     # Try to simplify the target by looking for factors among the numbers
     solution = look_for_factors(target, numbers)
     (solution != nothing) && return solution
 
-    opers = [:*, :+]
-    solution = try_pairwise_arith(target, numbers, opers)
-    (solution != nothing) && return solution
-
-    opers = [:-, :/]
-    solution = try_pairwise_arith(target, numbers, opers)
+    solution = try_all_combinations(target, numbers)
     (solution != nothing) && return solution
 
     return nothing
@@ -144,6 +138,7 @@ function look_for_factors(target, numbers)
         # if there are no other numbers left to form a multiplicand with
         return nothing #assume equality to target has already been checked
     end
+    # TODO ? return two arrays - one of them unused_nums - instead of doing recursion here
     for (idx, n) in enumerate(numbers)
         if target % n == 0 && n != 1
             unused_nums = array_rem_idx(numbers, idx)
@@ -158,96 +153,43 @@ function look_for_factors(target, numbers)
     end
 end
 
-function try_pairwise_arith(target, numbers, opers)
-    for (idx, n) in enumerate(numbers)
-        n = Unsigned(n) #assertion that the value is non-negative
-        for idx2 in (idx+1):length(numbers)
-            m = Unsigned(numbers[idx2])
-            unused_nums = array_rem_idx(array_rem_idx(numbers, idx2), idx)
-            for oper in opers
-                if n < m && oper in [:-, :/]
-                    pair_expr = :($oper($m, $n))
-                else
-                    pair_expr = :($oper($n, $m))
-                end
-                pair_result = eval(pair_expr)
-
-                # only positive integers may be obtained as a result at any stage of the calculation.
-                # (Countdown (game show), Wikipedia, in turn from 'Countdown: Spreading the Word' (2001) p. 24.)
-                if pair_result <= 0 || round(pair_result) != pair_result
-                    continue
-                else
-                    pair_result = Unsigned(pair_result) #division gives Float, turn back to int
-                    if pair_result == target
-                        solution = pair_expr
-                        verify_solution(solution, target)
-                        return solution
-                    elseif length(unused_nums) == 0
-                        continue
+function try_all_combinations(target, numbers)
+    for n = 2:length(numbers)
+        number_combs = multiset_combinations(numbers, n)
+        oper_orders  = get_oper_orderings(OPERS, n-1)
+        for nc in number_combs
+            for oper_comb in oper_orders
+                for oper_perms in oper_comb
+                    result = evaluate(nc, oper_perms)
+                    if result == target
+                        return make_expr(nc, oper_perms)
                     end
                 end
-
-                if (pair_result < target) 
-                    diff = (target - pair_result) 
-                    # partial solution should be added to result to get target
-                    partial_soln = find_arithmetic_expr(diff, unused_nums)
-                    if partial_soln != nothing
-                        solution = :($pair_expr + $partial_soln)
-                        verify_solution(solution, target)
-                        return solution
-                    end
-                else
-                    diff = (pair_result - target)
-                    # partial solution should be subtracted from result to get target
-                    partial_soln = find_arithmetic_expr(diff, unused_nums)
-                    if partial_soln != nothing
-                        solution = :($pair_expr - $partial_soln)
-                        verify_solution(solution, target)
-                        return solution
-                    end
-                end
-
-                quot = -1
-                if pair_result < target && target % pair_result == 0
-                    quot = Unsigned(target/pair_result)
-                    # partial solution and pair result should be multiplied to get target
-                    partial_soln = find_arithmetic_expr(quot, unused_nums)
-                    if partial_soln != nothing
-                        solution = :($pair_expr * $partial_soln)
-                        verify_solution(solution, target)
-                        return solution
-                    end
-                elseif pair_result > target && pair_result % target == 0
-                    quot = Unsigned(pair_result/target)
-                    # pair result should be divided by partial solution to get target
-                    partial_soln = find_arithmetic_expr(quot, unused_nums)
-                    if partial_soln != nothing
-                        solution = :($pair_expr / $partial_soln)
-                        verify_solution(solution, target)
-                        return solution
-                    end
-                end
-
-                #= say target = 41, numbers = [1, 3, 9, 5]
-                1 + 3 = 4 (this will be the pair_result),
-                41 + 4 = 45 (sum_value),
-                then 45 can be found as product as 9 and 5 in recursion. =#
-                sum_value = target + pair_result
-                partial_soln = find_arithmetic_expr(sum_value, unused_nums)
-                if partial_soln != nothing
-                    # solution should then be stored as (9 * 5) - (1 + 3)
-                    solution = :($partial_soln - $pair_expr)
-                    verify_solution(solution, target)
-                    return solution
-                end
-
-                # TODO target * pair_result should be found, then solution would be (partial_soln/pair_expr)
-
             end
         end
     end
+end
 
-    return nothing
+function get_oper_orderings(opers::Array{Symbol}, n)
+    combs = with_replacement_combinations(opers, n)
+    orderings = [multiset_permutations(c, n) for c in combs]
+    return orderings
+end
+
+function evaluate(numbers, operators)
+    result = eval(operators[1])(numbers[1], numbers[2])
+    for (idx, op) in enumerate(operators[2:end])
+        result = eval(op)(result, numbers[idx+1])
+    end
+    return result
+end
+
+function make_expr(numbers, operators)
+    result_expr = Expr(:call, $(operators[1]), $(numbers[1]), $(numbers[2]))
+    for (idx, op) in enumerate(operators[2:end])
+        result_expr= Expr(:call, $op, $result, $(numbers[idx+1]))
+    end
+    return result_expr
 end
 
 tell_them(solution::Void, t, a) = println("This one's impossible. Sorry!")
